@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 import glob
 
+#cv2.namedWindow("Matched", cv2.WINDOW_NORMAL)
+
 #Since this is cropped, its easy to split it into 25 parts.
 #Planning to connect them to neighbors with matching terrain, then checking to see how many, if any, has a crown.
 #I could do the opposite, but then i'd have to remember which one has already been checked bleh. I guess I have to do it anyway but the above feels easier.
@@ -41,20 +43,25 @@ m_low = np.array([0, 0, 0])
 m_high = np.array([35, 255, 30])
 
 #Missing one grass thats 62, really need to do histogram sigh
-g_low = np.array([35, 200, 70])
+
+m_low = np.array([0, 0, 0])
+m_high = np.array([35, 255, 30])
+
+#Missing one grass thats 62, really need to do histogram sigh
+g_low = np.array([35, 160, 100])
 g_high = np.array([55, 255, 255])
 
 f_low = np.array([35, 50, 10])
-f_high = np.array([60, 255, 80])
+f_high = np.array([80, 255, 109])
 
-s_low = np.array([20, 230, 160])
-s_high = np.array([30, 255, 210])
+s_low = np.array([20, 220, 160])
+s_high = np.array([30, 255, 225])
 
 d_low = np.array([15, 10, 50])
 d_high = np.array([30, 255, 155])
 
 w_low = np.array([100, 230, 100])
-w_high = np.array([110, 255, 210])
+w_high = np.array([110, 255, 215])
 
 t_low = np.array([15, 115, 120])
 t_high = np.array([21, 230, 185])
@@ -72,8 +79,6 @@ t_high = np.array([21, 230, 185])
 #Sand:   0-10 / 150-175 / 170-200
 #Desert: 0-100 / 95-125 / 110-140
 #Water:  170-185 / 80-95 / 0-15'''
-
-#cv2.namedWindow("Matched", cv2.WINDOW_NORMAL)
 
 def checkNeighborsDB(colors, x, y): #debug
     if colors is None:
@@ -112,13 +117,18 @@ def mask(img, low, high, x, y):
     if np.sum(mask) > 900000:
         return True
 
+clahe = cv2.createCLAHE(1.0, (5, 5))
 for b in boards:
     board = cv2.cvtColor(b, cv2.COLOR_BGR2HSV)
+    #board[:,:,2] = cv2.equalizeHist(board[:,:,2])
+    board[:,:,2] = clahe.apply(board[:,:,2])
     show = False
     count = 0
     colors = []
     diff = []
     diff2 = []
+    '''if num == 47:
+        show = True'''
     for y in range(5):
         colors.append([])
         for x in range(5):
@@ -126,13 +136,23 @@ for b in boards:
                 part = board[y * 100 + 5: (y + 1) * 100 - 5, x * 100 + 5: (x + 1) * 100 - 5]
 
                 H = np.bincount(np.array(part[:,:,0]).ravel())
-                S = np.bincount(np.array(part[:,:,1]).ravel())
-                V = np.bincount(np.array(part[:,:,2]).ravel())
+                check = np.where(part[:,:,0].ravel() == np.argmax(H))[0]
+                S = np.bincount(np.array([part[:,:,1].ravel()[i] for i in check]))
+                V = np.bincount(np.array([part[:,:,2].ravel()[i] for i in check]))
+
+                '''if show:
+                    np.set_printoptions(threshold=np.inf)
+                    #print(part[:,:,1])
+                    show = False
+                    print(np.where(part[:,:,0].ravel() == np.argmax(H))[0])
+                    print(np.array([part[:,:,1].ravel()[i] for i in np.where(part[:,:,0].ravel() == np.argmax(H))[0]]))'''
+
                 #H = int((np.argmax(H) + np.argmax(np.setdiff1d(H, np.argmax(H)))) / 2)
                 diff.append([np.argmax(H), np.argmax(S), np.argmax(V)])
                 diff2.append([np.argmax(np.setdiff1d(H, diff[count][0])), np.argmax(np.setdiff1d(S, diff[count][1])), np.argmax(np.setdiff1d(V, diff[count][2]))])
 
-                cv2.rectangle(part, (45, 45), (55, 55), np.array(diff[count]).tolist(), 50)
+                cv2.rectangle(part, (45, 45), (55, 55), np.array(diff[count]).tolist(), 40)
+                #cv2.rectangle(part, (0, 0), (100, 100), np.array(diff[count]).tolist(), 10)
 
                 text = ""
                 color = [255, 255, 255]
@@ -172,20 +192,7 @@ for b in boards:
                         forest = cv2.hconcat([forest, p])
                     text = "forest"
                     color = [0, 130, 0]
-                elif mask(part, t_low, t_high, x, y):
-                    if table is None:
-                        table = p
-                    else:
-                        table = cv2.hconcat([table, p])
-                    text = "Table"
-                    color = [0, 0, 255]
                 elif mask(part, d_low, d_high, x, y):
-                    '''if diff2[count][0] < 50 and abs(diff[count][0]-diff2[count][0]) > 10:
-                        if crown is None:
-                            crown = p
-                        else:
-                            crown = cv2.hconcat([crown, p])
-                    el'''
                     if desert is None:
                         desert = p
                     else:
@@ -199,6 +206,13 @@ for b in boards:
                         mine = cv2.hconcat([mine, p])
                     text = "mine"
                     color = [0, 0, 0]
+                elif mask(part, t_low, t_high, x, y):
+                    if table is None:
+                        table = p
+                    else:
+                        table = cv2.hconcat([table, p])
+                    text = "Table"
+                    color = [0, 0, 255]
                 else:
                     if na is None:
                         na = p
