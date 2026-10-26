@@ -39,10 +39,9 @@ mine = grass = forest = sand = desert = water = table = na = crown = [].append([
 
 m_low = np.array([0, 0, 0])
 m_high = np.array([35, 255, 30])
-'''m2_low = np.array([0, 250, 0])
-m2_high = np.array([40, 255, 30])'''
 
-g_low = np.array([35, 200, 100])
+#Missing one grass thats 62, really need to do histogram sigh
+g_low = np.array([35, 200, 70])
 g_high = np.array([55, 255, 255])
 
 f_low = np.array([35, 50, 10])
@@ -110,7 +109,7 @@ count = 0
 diff = []
 def mask(img, low, high, x, y):
     mask = cv2.inRange(img, low, high)
-    if np.sum(mask) > 0:
+    if np.sum(mask) > 900000:
         return True
 
 for b in boards:
@@ -133,7 +132,7 @@ for b in boards:
                 diff.append([np.argmax(H), np.argmax(S), np.argmax(V)])
                 diff2.append([np.argmax(np.setdiff1d(H, diff[count][0])), np.argmax(np.setdiff1d(S, diff[count][1])), np.argmax(np.setdiff1d(V, diff[count][2]))])
 
-                cv2.rectangle(part, (45, 45), (55, 55), np.array(diff[count]).tolist(), 200)
+                cv2.rectangle(part, (45, 45), (55, 55), np.array(diff[count]).tolist(), 50)
 
                 text = ""
                 color = [255, 255, 255]
@@ -143,6 +142,8 @@ for b in boards:
                 cv2.putText(p, str(np.array(diff2[count]).tolist()), (2, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 3)
                 cv2.putText(p, str(np.array(diff2[count]).tolist()), (2, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
 
+                #Important! brackets = (errors)
+                #Order: Grass = Sand = Water, Forest (grass), Desert (players, forest, sand), Table (desert), mines (players, forests)
                 if mask(part, g_low, g_high, x, y):
                     if grass is None:
                         grass = p
@@ -157,6 +158,20 @@ for b in boards:
                         sand = cv2.hconcat([sand, p])
                     text = "sand"
                     color = [0, 150, 255]
+                elif mask(part, w_low, w_high, x, y):
+                    if water is None:
+                        water = p
+                    else:
+                        water = cv2.hconcat([water, p])
+                        text = "water"
+                        color = [255, 0, 0]
+                elif mask(part, f_low, f_high, x, y):
+                    if forest is None:
+                        forest = p
+                    else:
+                        forest = cv2.hconcat([forest, p])
+                    text = "forest"
+                    color = [0, 130, 0]
                 elif mask(part, t_low, t_high, x, y):
                     if table is None:
                         table = p
@@ -165,24 +180,18 @@ for b in boards:
                     text = "Table"
                     color = [0, 0, 255]
                 elif mask(part, d_low, d_high, x, y):
-                    if diff2[count][0] < 50 and abs(diff[count][0]-diff2[count][0]) > 10:
+                    '''if diff2[count][0] < 50 and abs(diff[count][0]-diff2[count][0]) > 10:
                         if crown is None:
                             crown = p
                         else:
                             crown = cv2.hconcat([crown, p])
-                    elif desert is None:
+                    el'''
+                    if desert is None:
                         desert = p
                     else:
                         desert = cv2.hconcat([desert, p])
                     text = "desert"
                     color = [170, 160, 125]
-                elif mask(part, w_low, w_high, x, y):
-                    if water is None:
-                        water = p
-                    else:
-                        water = cv2.hconcat([water, p])
-                    text = "water"
-                    color = [255, 0, 0]
                 elif mask(part, m_low, m_high, x, y):
                     if mine is None:
                         mine = p
@@ -190,13 +199,6 @@ for b in boards:
                         mine = cv2.hconcat([mine, p])
                     text = "mine"
                     color = [0, 0, 0]
-                elif mask(part, f_low, f_high, x, y):
-                    if forest is None:
-                        forest = p
-                    else:
-                        forest = cv2.hconcat([forest, p])
-                    text = "forest"
-                    color = [0, 130, 0]
                 else:
                     if na is None:
                         na = p
@@ -211,8 +213,9 @@ for b in boards:
                 if y > 0 and colors[y][x] == colors[y-1][x]:
                     cv2.line(b, (50 + x * 100, 50 + y * 100), (50 + x * 100, -50 + y * 100), colors[y][x], 3)'''
 
-                '''cv2.putText(b, text, (5 + x * 100, 25 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
-                cv2.putText(b, str(np.array(diff[count]).tolist()), (2 + x * 100, 40 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 3)
+                cv2.putText(b, text, (5 + x * 100, 25 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
+
+                '''cv2.putText(b, str(np.array(diff[count]).tolist()), (2 + x * 100, 40 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 3)
                 cv2.putText(b, str(np.array(diff[count]).tolist()), (2 + x * 100, 40 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
                 cv2.putText(b, str(np.array([np.argmax(np.setdiff1d(H, diff[count][0])), np.argmax(np.setdiff1d(S, diff[count][1])), np.argmax(np.setdiff1d(V, diff[count][2]))])), (2 + x * 100, 60 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 3)
                 cv2.putText(b, str(np.array([np.argmax(np.setdiff1d(H, diff[count][0])), np.argmax(np.setdiff1d(S, diff[count][1])), np.argmax(np.setdiff1d(V, diff[count][2]))])), (2 + x * 100, 60 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)'''
