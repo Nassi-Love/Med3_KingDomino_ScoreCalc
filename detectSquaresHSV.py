@@ -22,7 +22,7 @@ blob = cv2.SimpleBlobDetector_create(p)
 #Need to do histogram stuff so its easier to compare differences regardless of lighting!
 #Detect mines by detecting amount of "black" and "yellow" so it doesnt mistake with forest?
 
-mine = grass = forest = sand = desert = water = table = na = crown = [].append([])
+mine = grass = forest = sand = desert = water = table = na = crown = cWater = [].append([])
 count = 0
 diff = []
 
@@ -172,7 +172,19 @@ y2_high = np.array([70, 255, 255])
 g_low = np.array([0, 0, 0])
 g_high = np.array([150, 255, 100])
 
-wa = cv2.imread("results/Water.jpg")
+def cMask(img, low, high):
+    i = np.copy(img)
+    i[:,:,0] = clahe.apply(i[:,:,0])
+    i[:,:,1] = clahe.apply(i[:,:,1])
+    i[:,:,2] = clahe.apply(i[:,:,2])
+    i = cv2.inRange(i, low, high)
+    cv2.rectangle(i, (0, 0), (100, 100), (255, 255, 255), 1)
+    cv2.floodFill(i, None, (0, 0), 0)
+    i = i[20:80, 20:80]
+    if np.sum(i) > 200000:
+        return True
+
+'''wa = cv2.imread("results/Water.jpg")
 wa[:,:,0] = clahe.apply(wa[:,:,0])
 wa[:,:,1] = clahe.apply(wa[:,:,1])
 wa[:,:,2] = clahe.apply(wa[:,:,2])
@@ -180,44 +192,45 @@ wa[:,:,2] = clahe.apply(wa[:,:,2])
 ma = cv2.inRange(wa, y2_low, y2_high)
 
 for i in range(int(wa.shape[1]/100 - 1)):
-    was = wa[0: 100, i * 100: (i + 1)*100]
+    was = wa[0: 100, i * 100: (i + 1) * 100]
     mas = ma[0: 100, i * 100: (i + 1) * 100]
     was = cv2.hconcat([was, cv2.cvtColor(mas, cv2.COLOR_GRAY2BGR)])
     cv2.rectangle(mas, (0, 0), (100, 100), (255, 255, 255), 1)
     cv2.floodFill(mas, None, (0, 0), 0)
     mas = mas[20: 80, 20: 80]
-    '''cv2.rectangle(mas, (0, 0), (90, 90), (0, 0, 0), 1)
-    cv2.floodFill(mas, None, (0, 0), 0)'''
+    #cv2.rectangle(mas, (0, 0), (90, 90), (0, 0, 0), 1)
+    #cv2.floodFill(mas, None, (0, 0), 0)
     if np.sum(mas) > 200000:
         cv2.rectangle(wa, (i * 100, 0), (i * 100 + 100, 100), (0, 0, 255), 2)
-        '''cv2.imshow("Matched", was)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()'''
+        #cv2.imshow("Matched", was)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
 
 cv2.imwrite("results/WaterRes.jpg", wa)
 
-raise SystemExit(0)
+raise SystemExit(0)'''
 
 for b in boards:
 #if True:
     #b = cv2.imread("data/cropped/8.jpg")
-    b[:,:,0] = cv2.equalizeHist(b[:,:,0])
+    o = b
+    '''b[:,:,0] = cv2.equalizeHist(b[:,:,0])
     b[:,:,1] = cv2.equalizeHist(b[:,:,1])
     b[:,:,2] = cv2.equalizeHist(b[:,:,2])
     b[:,:,0] = clahe.apply(b[:,:,0])
     b[:,:,1] = clahe.apply(b[:,:,1])
-    b[:,:,2] = clahe.apply(b[:,:,2])
+    b[:,:,2] = clahe.apply(b[:,:,2])'''
 
     '''b[:,:,0] = clahe.apply(b[:,:,0])
     b[:,:,1] = clahe.apply(b[:,:,2])'''
     board = cv2.cvtColor(b, cv2.COLOR_BGR2HSV)
     board[:,:,2] = clahe.apply(board[:,:,2])
-    show = True
+    show = False
     count = 0
     colors = []
     diff = []
     diff2 = []
-    rgbp = cv2.cvtColor(b, cv2.COLOR_HSV2RGB)
+    '''rgbp = cv2.cvtColor(b, cv2.COLOR_HSV2RGB)
     rgbp = cv2.addWeighted(rgbp, 50, cv2.blur(rgbp, (15, 15)), -4, 128)
     map = cv2.inRange(b, ye_low, ye_high)
     c, _ = cv2.findContours(map, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -230,7 +243,7 @@ for b in boards:
             cv2.floodFill(map, None, (x1 * 100 + 55, y1 * 100 + 55), 255)
             cv2.floodFill(map, None, (x1 * 100 + 45, y1 * 100 + 45), 255)
             cv2.rectangle(map, (x1 * 100 + 25, y1 * 100 + 25), (x1 * 100 + 75, y1 * 100 + 75), (255, 255, 255), -1)
-    maskCrown(cv2.bitwise_not(map), b)
+    maskCrown(cv2.bitwise_not(map), b)'''
     '''cv2.imshow("Matched", map)
     cv2.waitKey(0)
     cv2.destroyAllWindows()'''
@@ -240,7 +253,7 @@ for b in boards:
         colors.append([])
         for x in range(5):
                 p = b[y * 100: (y + 1) * 100, x * 100: (x + 1) * 100]
-                m = map[y * 100: (y + 1) * 100, x * 100: (x + 1) * 100]
+                #m = map[y * 100: (y + 1) * 100, x * 100: (x + 1) * 100]
                 part = board[y * 100 + 5: (y + 1) * 100 - 5, x * 100 + 5: (x + 1) * 100 - 5]
 
                 H = np.bincount(np.array(part[:,:,0]).ravel())
@@ -273,7 +286,7 @@ for b in boards:
                 #Important! brackets = (errors)
                 #Order: Grass = Sand = Water, Forest (grass), Desert (players, forest, sand), Table (desert), mines (players, forests)
                 if mask(part, g_low, g_high, 900000):
-                    blobDetect(m)
+                    #blobDetect(m)
                     if grass is None:
                         grass = p
                     else:
@@ -281,7 +294,7 @@ for b in boards:
                     text = "grass"
                     color = [0, 255, 0]
                 elif mask(part, s_low, s_high, 900000):
-                    blobDetect(m)
+                    #blobDetect(m)
                     if sand is None:
                         sand = p
                     else:
@@ -289,15 +302,20 @@ for b in boards:
                     text = "sand"
                     color = [0, 150, 255]
                 elif mask(part, w_low, w_high, 900000):
-                    blobDetect(m)
-                    if water is None:
+                    #blobDetect(m)
+                    if cMask(p, y2_low, y2_high):
+                        if cWater is None:
+                            cWater = p
+                        else:
+                            cWater = cv2.hconcat([cWater, p])
+                    elif water is None:
                         water = p
                     else:
                         water = cv2.hconcat([water, p])
                         text = "water"
                         color = [255, 0, 0]
                 elif mask(part, f_low, f_high, 900000):
-                    blobDetect(m)
+                    #blobDetect(m)
                     if forest is None:
                         forest = p
                     else:
@@ -305,7 +323,7 @@ for b in boards:
                     text = "forest"
                     color = [0, 130, 0]
                 elif mask(part, d_low, d_high, 900000):
-                    blobDetect(m)
+                    #blobDetect(m)
                     if desert is None:
                         desert = p
                     else:
@@ -313,7 +331,7 @@ for b in boards:
                     text = "desert"
                     color = [170, 160, 125]
                 elif mask(part, m_low, m_high, 900000):
-                    blobDetect(m)
+                    #blobDetect(m)
                     if mine is None:
                         mine = p
                     else:
@@ -321,7 +339,7 @@ for b in boards:
                     text = "mine"
                     color = [0, 0, 0]
                 elif mask(part, t_low, t_high, 900000):
-                    blobDetect(m)
+                    #blobDetect(m)
                     if table is None:
                         table = p
                     else:
@@ -329,7 +347,7 @@ for b in boards:
                     text = "Table"
                     color = [0, 0, 255]
                 else:
-                    blobDetect(m)
+                    #blobDetect(m)
                     if na is None:
                         na = p
                     else:
@@ -360,12 +378,13 @@ for b in boards:
     num += 1
 
 #DEBUG to check which blocks are considered what. Might split into different folders and have each be individual images.
+cv2.imwrite("results/WaterRes.jpg", cWater)
+cv2.imwrite("results/Water.jpg", water)
 '''cv2.imwrite("results/Mines.jpg", mine)
 cv2.imwrite("results/Grasslands.jpg", grass)
 cv2.imwrite("results/Forests.jpg", forest)
 cv2.imwrite("results/Sands.jpg", sand)
 cv2.imwrite("results/Deserts.jpg", desert)
-cv2.imwrite("results/Water.jpg", water)
 cv2.imwrite("results/Table.jpg", table)
 cv2.imwrite("results/NA.jpg", na)'''
 # Just testing, not final, need to check for the actual crowns and buildings.
