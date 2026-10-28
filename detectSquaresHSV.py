@@ -366,7 +366,7 @@ for b in boards:
                 colors[y].append(color)
 
                 if x > 0 and colors[y][x][:3] == colors[y][x-1][:3]:
-                    if any(([x * 100 - 50, y * 100 + 50]) in i for i in connect) == False and any(([x * 100 + 50, y * 100 - 50]) in i for i in connect) == False:
+                    if any(([x * 100 - 50, y * 100 + 50]) in i for i in connect) == False:
                         connect.append([[x * 100 - 50, y * 100 + 50]])
                     for i in connect:
                         if (([x * 100 - 50, y * 100 + 50]) in i) == True and (([x * 100 + 50, y * 100 + 50]) in i) == False:
@@ -374,7 +374,7 @@ for b in boards:
                     cv2.line(b, (50 + x * 100, 50 + y * 100), (-50 + x * 100, 50 + y * 100), colors[y][x], 3)
 
                 if y > 0 and colors[y][x][:3] == colors[y-1][x][:3]:
-                    if any(([x * 100 + 50, y * 100 - 50]) in i for i in connect) == False and any(([x * 100 + 150, y * 100 - 150]) in i for i in connect) == False and any(([x * 100 + 50, y * 100 + 50]) in i for i in connect) == False:
+                    if any(([x * 100 + 50, y * 100 - 50]) in i for i in connect) == False:
                         connect.append([[x * 100 + 50, y * 100 - 50]])
                     for i in connect:
                         if (([x * 100 + 50, y * 100 - 50]) in i) == True and (([x * 100 + 50, y * 100 + 50]) in i) == False:
@@ -384,11 +384,23 @@ for b in boards:
                 #cv2.putText(b, text, (5 + x * 100, 25 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
 
                 count += 1
+    for i in range(len(connect)-1):
+        if len(connect)-1 < i: break
+        for j in range(len(connect)-1):
+            if j == i: continue
+            if any([k in connect[i] for k in connect[j]]):
+                [connect[i].append(k) for k in connect[j] if k not in connect[i]]
+                connect.remove(connect[j])
+                break
+
     print(connect)
-    for p in pt:
-        #for i in connect:
-            #print([p in i for i in connect])
-        cv2.putText(b, "WA", p, cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
+    for i in connect:
+        points = np.sum([i.count(p) for p in pt])
+        print(points)
+        for p in pt:
+            if points == 0 or p not in i: continue
+            cv2.putText(b, f"Points: {np.sum(points) * len(i)}", (p[0] - 45, p[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            points = 0
 
     show = True
     if show:
