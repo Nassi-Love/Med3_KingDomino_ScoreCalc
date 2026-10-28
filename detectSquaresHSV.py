@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import glob
 
-cv2.namedWindow("Matched", cv2.WINDOW_NORMAL)
+#cv2.namedWindow("Matched", cv2.WINDOW_NORMAL)
 
 '''Since this is cropped, its easy to split it into 25 parts.
 Planning to connect them to neighbors with matching terrain, then checking to see how many, if any, has a crown.
@@ -22,7 +22,7 @@ blob = cv2.SimpleBlobDetector_create(p)
 #Need to do histogram stuff so its easier to compare differences regardless of lighting!
 #Detect mines by detecting amount of "black" and "yellow" so it doesnt mistake with forest?
 
-mine = grass = forest = sand = desert = water = table = na = crown = cWater = [].append([])
+mine = grass = forest = sand = desert = water = table = na = cForest = cWater = [].append([])
 count = 0
 diff = []
 
@@ -157,7 +157,7 @@ clahe = cv2.createCLAHE(1.0, (5, 5))
     cv2.waitKey(0)
     cv2.destroyAllWindows()'''
 
-#Grass desert can have 2, mines can have 3
+#Grass and desert can have 2, mines can have 3
 
 #Yellow
 ye_low = np.array([170, 0, 0])
@@ -168,11 +168,15 @@ ye_high = np.array([255, 255, 255])
 y2_low = np.array([0, 0, 10])
 y2_high = np.array([70, 255, 255])
 
-#Light Green
-g_low = np.array([0, 0, 0])
-g_high = np.array([150, 255, 100])
+#Yellow 3
+y3_low = np.array([70, 0, 100])
+y3_high = np.array([255, 255, 250])
 
-def cMask(img, low, high):
+#Light Green
+lg_low = np.array([0, 0, 0])
+lg_high = np.array([150, 255, 100])
+
+def wMask(img, low, high):
     i = np.copy(img)
     i[:,:,0] = clahe.apply(i[:,:,0])
     i[:,:,1] = clahe.apply(i[:,:,1])
@@ -184,31 +188,81 @@ def cMask(img, low, high):
     if np.sum(i) > 200000:
         return True
 
-'''wa = cv2.imread("results/Water.jpg")
+def fMask(img, low, high):
+    i = np.copy(img)
+    i[:,:,0] = clahe.apply(i[:,:,0])
+    i[:,:,1] = clahe.apply(i[:,:,1])
+    i[:,:,2] = clahe.apply(i[:,:,2])
+    i[:,:,2] = clahe.apply(i[:,:,1])
+
+    i = cv2.medianBlur(i, 5)
+    i = cv2.inRange(i, low, high)
+
+    cv2.rectangle(i, (0, 0), (100, 100), (255, 255, 255), 2)
+    cv2.floodFill(i, None, (0, 0), 0)
+    cv2.floodFill(i, None, (0, 99), 0)
+    cv2.rectangle(i, (0, 0), (100, 100), (255, 255, 255), 1)
+    cv2.floodFill(i, None, (0, 0), 0)
+    cv2.rectangle(i, (0, 0), (100, 100), (0, 0, 0), 25)
+    i = cv2.medianBlur(i, 3)
+
+    i = i[10: 90, 10: 90]
+    if np.sum(i) > 100000:
+        return True
+
+#region test crown detection
+'''wa = cv2.imread("results/Forests.jpg")
 wa[:,:,0] = clahe.apply(wa[:,:,0])
 wa[:,:,1] = clahe.apply(wa[:,:,1])
 wa[:,:,2] = clahe.apply(wa[:,:,2])
+wa[:,:,2] = clahe.apply(wa[:,:,1])
 
-ma = cv2.inRange(wa, y2_low, y2_high)
+wa = cv2.medianBlur(wa, 5)
+ma = cv2.inRange(wa, y3_low, y3_high)
+cv2.rectangle(ma, (0, 0), (30900, 100), (255, 255, 255), 2)
+cv2.floodFill(ma, None, (0, 0), 0)
+cv2.floodFill(ma, None, (0, 99), 0)
+#cv2.imshow("Matched", ma)
+#cv2.waitKey(0)
+#cv2.destroyAllWindows()
 
-for i in range(int(wa.shape[1]/100 - 1)):
+n = 0
+for i in range(int(wa.shape[1]/100)):
     was = wa[0: 100, i * 100: (i + 1) * 100]
     mas = ma[0: 100, i * 100: (i + 1) * 100]
     was = cv2.hconcat([was, cv2.cvtColor(mas, cv2.COLOR_GRAY2BGR)])
     cv2.rectangle(mas, (0, 0), (100, 100), (255, 255, 255), 1)
     cv2.floodFill(mas, None, (0, 0), 0)
-    mas = mas[20: 80, 20: 80]
-    #cv2.rectangle(mas, (0, 0), (90, 90), (0, 0, 0), 1)
+    cv2.rectangle(mas, (0, 0), (100, 100), (0, 0, 0), 25)
+    ma = cv2.medianBlur(ma, 3)
+    #cv2.rectangle(mas, (45, 0), (55, 10), (255, 255, 255), 1)
+    #cv2.floodFill(mas, None, (55, 10), 0)
+    #cv2.rectangle(mas, (45, 100), (55, 90), (255, 255, 255), 1)
+    #cv2.floodFill(mas, None, (55, 90), 0)
+    #cv2.rectangle(mas, (0, 45), (10, 55), (255, 255, 255), 1)
+    #cv2.floodFill(mas, None, (10, 55), 0)
+    #cv2.rectangle(mas, (100, 45), (90, 55), (255, 255, 255), 1)
+    #cv2.floodFill(mas, None, (90, 55), 0)
+    mas = cv2.medianBlur(mas, 3)
+    if cf is None:
+        cf = mas
+    else:
+        cf = cv2.hconcat([cf, mas])
+    mas = mas[10: 90, 10: 90]
+    #cv2.rectangle(mas, (0, 0), (60, 60), (0, 0, 0), 1)
     #cv2.floodFill(mas, None, (0, 0), 0)
-    if np.sum(mas) > 200000:
+    if np.sum(mas) > 158000:
         cv2.rectangle(wa, (i * 100, 0), (i * 100 + 100, 100), (0, 0, 255), 2)
         #cv2.imshow("Matched", was)
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
+        n += 1
 
-cv2.imwrite("results/WaterRes.jpg", wa)
+print(n)
+cv2.imwrite("results/ForestRes.jpg", cv2.vconcat([wa, cv2.cvtColor(cf, cv2.COLOR_GRAY2BGR)]))
 
 raise SystemExit(0)'''
+#endregion
 
 for b in boards:
 #if True:
@@ -252,7 +306,7 @@ for b in boards:
     for y in range(5):
         colors.append([])
         for x in range(5):
-                p = b[y * 100: (y + 1) * 100, x * 100: (x + 1) * 100]
+                p = o[y * 100: (y + 1) * 100, x * 100: (x + 1) * 100]
                 #m = map[y * 100: (y + 1) * 100, x * 100: (x + 1) * 100]
                 part = board[y * 100 + 5: (y + 1) * 100 - 5, x * 100 + 5: (x + 1) * 100 - 5]
 
@@ -303,7 +357,7 @@ for b in boards:
                     color = [0, 150, 255]
                 elif mask(part, w_low, w_high, 900000):
                     #blobDetect(m)
-                    if cMask(p, y2_low, y2_high):
+                    if wMask(p, y2_low, y2_high):
                         if cWater is None:
                             cWater = p
                         else:
@@ -316,7 +370,12 @@ for b in boards:
                         color = [255, 0, 0]
                 elif mask(part, f_low, f_high, 900000):
                     #blobDetect(m)
-                    if forest is None:
+                    if fMask(p, y3_low, y3_high):
+                        if cForest is None:
+                            cForest = p
+                        else:
+                            cForest = cv2.hconcat([cForest, p])
+                    elif forest is None:
                         forest = p
                     else:
                         forest = cv2.hconcat([forest, p])
@@ -380,9 +439,10 @@ for b in boards:
 #DEBUG to check which blocks are considered what. Might split into different folders and have each be individual images.
 cv2.imwrite("results/WaterRes.jpg", cWater)
 cv2.imwrite("results/Water.jpg", water)
+cv2.imwrite("results/Forests.jpg", forest)
+cv2.imwrite("results/ForestRes.jpg", cForest)
 '''cv2.imwrite("results/Mines.jpg", mine)
 cv2.imwrite("results/Grasslands.jpg", grass)
-cv2.imwrite("results/Forests.jpg", forest)
 cv2.imwrite("results/Sands.jpg", sand)
 cv2.imwrite("results/Deserts.jpg", desert)
 cv2.imwrite("results/Table.jpg", table)
