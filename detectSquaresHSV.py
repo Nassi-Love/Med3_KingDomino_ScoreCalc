@@ -264,6 +264,7 @@ for b in boards:
     board[:,:,2] = clahe.apply(board[:,:,2])
     show = False
     count = 0
+    connect = []
     colors = []
     diff = []
     pt = []
@@ -364,15 +365,29 @@ for b in boards:
                     color = [255, 255, 255, 255]
                 colors[y].append(color)
 
-                '''if x > 0 and colors[y][x][:3] == colors[y][x-1][:3]:
+                if x > 0 and colors[y][x][:3] == colors[y][x-1][:3]:
+                    if any(([x * 100 - 50, y * 100 + 50]) in i for i in connect) == False and any(([x * 100 + 50, y * 100 - 50]) in i for i in connect) == False:
+                        connect.append([[x * 100 - 50, y * 100 + 50]])
+                    for i in connect:
+                        if (([x * 100 - 50, y * 100 + 50]) in i) == True and (([x * 100 + 50, y * 100 + 50]) in i) == False:
+                            i.append([x * 100 + 50, y * 100 + 50])
                     cv2.line(b, (50 + x * 100, 50 + y * 100), (-50 + x * 100, 50 + y * 100), colors[y][x], 3)
+
                 if y > 0 and colors[y][x][:3] == colors[y-1][x][:3]:
-                    cv2.line(b, (50 + x * 100, 50 + y * 100), (50 + x * 100, -50 + y * 100), colors[y][x], 3)'''
+                    if any(([x * 100 + 50, y * 100 - 50]) in i for i in connect) == False and any(([x * 100 + 150, y * 100 - 150]) in i for i in connect) == False and any(([x * 100 + 50, y * 100 + 50]) in i for i in connect) == False:
+                        connect.append([[x * 100 + 50, y * 100 - 50]])
+                    for i in connect:
+                        if (([x * 100 + 50, y * 100 - 50]) in i) == True and (([x * 100 + 50, y * 100 + 50]) in i) == False:
+                            i.append([x * 100 + 50, y * 100 + 50])
+                    cv2.line(b, (50 + x * 100, 50 + y * 100), (50 + x * 100, -50 + y * 100), colors[y][x], 3)
 
                 #cv2.putText(b, text, (5 + x * 100, 25 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
 
                 count += 1
+    print(connect)
     for p in pt:
+        #for i in connect:
+            #print([p in i for i in connect])
         cv2.putText(b, "WA", p, cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
 
     show = True
