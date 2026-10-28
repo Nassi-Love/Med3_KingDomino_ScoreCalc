@@ -22,7 +22,7 @@ blob = cv2.SimpleBlobDetector_create(p)
 #Need to do histogram stuff so its easier to compare differences regardless of lighting!
 #Detect mines by detecting amount of "black" and "yellow" so it doesnt mistake with forest?
 
-mine = grass = forest = sand = desert = water = table = na = cForest = cWater = cSand = [].append([])
+mine = grass = forest = sand = desert = water = table = na = cForest = cWater = cSand = cMine = [].append([])
 count = 0
 diff = []
 
@@ -212,18 +212,18 @@ def fMask(img, low, high):
         return True
 
 #region test crown detection
-'''wa = cv2.imread("results/Sands.jpg")
+'''wa = cv2.imread("results/Mines.jpg")
+#i = cv2.cvtColor(i, cv2.COLOR_BGR2HSV)
+#wa = cv2.cvtColor(wa[:,:,1], cv2.COLOR_GRAY2RGB)
 wa[:,:,0] = clahe.apply(wa[:,:,0])
 wa[:,:,1] = clahe.apply(wa[:,:,1])
 wa[:,:,2] = clahe.apply(wa[:,:,2])
-
-#wa = cv2.medianBlur(wa, 3)
-ma = cv2.inRange(wa, y3_low, y3_high)
+wa[:,:,2] = clahe.apply(wa[:,:,0])
+ma = cv2.inRange(wa, (90, 0, 100), (255, 255, 255))
+ma = cv2.medianBlur(ma, 3)
 #cv2.rectangle(ma, (0, 0), (37900, 100), (255, 255, 255), 2)
 #cv2.floodFill(ma, None, (0, 0), 0)
-#cv2.floodFill(ma, None, (0, 99), 0)
-#ma = cv2.vconcat([wa, cv2.cvtColor(ma, cv2.COLOR_GRAY2BGR)])
-#cv2.imshow("Matched", ma)
+#cv2.imshow("Matched", wa)
 #cv2.waitKey(0)
 #cv2.destroyAllWindows()
 
@@ -231,27 +231,27 @@ n = 0
 for i in range(int(wa.shape[1]/100)):
     was = wa[0: 100, i * 100: (i + 1) * 100]
     mas = ma[0: 100, i * 100: (i + 1) * 100]
-    was = cv2.hconcat([was, cv2.cvtColor(mas, cv2.COLOR_GRAY2BGR)])
     cv2.rectangle(mas, (0, 0), (100, 100), (255, 255, 255), 1)
     cv2.floodFill(mas, None, (0, 0), 0)
-    #cv2.rectangle(mas, (0, 0), (100, 100), (0, 0, 0), 25)
-    #mas = cv2.medianBlur(mas, 3)
-    if cf is None:
-        cf = mas
+    cv2.rectangle(mas, (35, 35), (70, 70), (0, 0, 0), -1)
+    was = cv2.hconcat([was, cv2.cvtColor(mas, cv2.COLOR_GRAY2BGR)])
+    mas = cv2.medianBlur(mas, 3)
+    if cMine is None:
+        cMine = mas
     else:
-        cf = cv2.hconcat([cf, mas])
+        cMine = cv2.hconcat([cMine, mas])
     mas = mas[10: 90, 10: 90]
     #cv2.rectangle(mas, (0, 0), (60, 60), (0, 0, 0), 1)
     #cv2.floodFill(mas, None, (0, 0), 0)
-    if np.sum(mas) > 60000:
+    if np.sum(mas) > 130000: #500000
         cv2.rectangle(wa, (i * 100, 0), (i * 100 + 100, 100), (0, 0, 255), 2)
-        #cv2.imshow("Matched", was)
+        #cv2.imshow("Matched", mas)
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
         n += 1
 
 print(n)
-cv2.imwrite("results/SandRes.jpg", cv2.vconcat([wa, cv2.cvtColor(cf, cv2.COLOR_GRAY2BGR)]))
+cv2.imwrite("results/MineRes.jpg", cv2.vconcat([wa, cv2.cvtColor(cMine, cv2.COLOR_GRAY2BGR)]))
 
 raise SystemExit(0)'''
 #endregion
@@ -266,7 +266,7 @@ for b in boards:
     count = 0
     colors = []
     diff = []
-    diff2 = []
+    pt = []
     '''if num == 47:
         show = True'''
     for y in range(5):
@@ -279,13 +279,11 @@ for b in boards:
                 check = np.where(part[:,:,0].ravel() == np.argmax(H))[0]
                 S = np.bincount(np.array([part[:,:,1].ravel()[i] for i in check]))
                 V = np.bincount(np.array([part[:,:,2].ravel()[i] for i in check]))
-
                 diff.append([np.argmax(H), np.argmax(S), np.argmax(V)])
-                diff2.append([np.argmax(np.setdiff1d(H, diff[count][0])), np.argmax(np.setdiff1d(S, diff[count][1])), np.argmax(np.setdiff1d(V, diff[count][2]))])
 
                 cv2.rectangle(part, (45, 45), (55, 55), np.array(diff[count]).tolist(), 40)
 
-                text = ""
+                text = "Meow"
                 color = [255, 255, 255]
 
                 #Important! brackets = (errors)
@@ -296,9 +294,11 @@ for b in boards:
                     else:
                         grass = cv2.hconcat([grass, p])
                     text = "grass"
-                    color = [0, 255, 0]
+                    color = [0, 255, 0, 255]
                 elif mask(part, s_low, s_high, 900000):
+                    color = [0, 150, 255, 255]
                     if wMask(p, ye3_low, y3_high, 60000):
+                        pt.append([x * 100 + 50, y * 100 + 50])
                         if cSand is None:
                             cSand = p
                         else:
@@ -308,9 +308,10 @@ for b in boards:
                     else:
                         sand = cv2.hconcat([sand, p])
                     text = "sand"
-                    color = [0, 150, 255]
                 elif mask(part, w_low, w_high, 900000):
+                    color = [255, 0, 0, 255]
                     if wMask(p, y2_low, y2_high, 200000):
+                        pt.append([x * 100 + 50, y * 100 + 50])
                         if cWater is None:
                             cWater = p
                         else:
@@ -319,10 +320,11 @@ for b in boards:
                         water = p
                     else:
                         water = cv2.hconcat([water, p])
-                        text = "water"
-                        color = [255, 0, 0]
+                    text = "water"
                 elif mask(part, f_low, f_high, 900000):
+                    color = [0, 130, 0, 255]
                     if fMask(p, y3_low, y3_high):
+                        pt.append([x * 100 + 50, y * 100 + 50])
                         if cForest is None:
                             cForest = p
                         else:
@@ -332,14 +334,13 @@ for b in boards:
                     else:
                         forest = cv2.hconcat([forest, p])
                     text = "forest"
-                    color = [0, 130, 0]
                 elif mask(part, d_low, d_high, 900000):
                     if desert is None:
                         desert = p
                     else:
                         desert = cv2.hconcat([desert, p])
                     text = "desert"
-                    color = [170, 160, 125]
+                    color = [170, 160, 125, 255]
                 elif mask(part, m_low, m_high, 900000):
                     if mine is None:
                         mine = p
@@ -348,38 +349,33 @@ for b in boards:
                     text = "mine"
                     color = [0, 0, 0]
                 elif mask(part, t_low, t_high, 900000):
-                    #blobDetect(m)
                     if table is None:
                         table = p
                     else:
                         table = cv2.hconcat([table, p])
                     text = "Table"
-                    color = [0, 0, 255]
+                    color = [0, 0, 255, 255]
                 else:
-                    #blobDetect(m)
                     if na is None:
                         na = p
                     else:
                         na = cv2.hconcat([na, p])
                     text = "N/A"
-                    color = [255, 255, 255]
+                    color = [255, 255, 255, 255]
                 colors[y].append(color)
 
-                '''if x > 0 and colors[y][x] == colors[y][x-1]:
+                '''if x > 0 and colors[y][x][:3] == colors[y][x-1][:3]:
                     cv2.line(b, (50 + x * 100, 50 + y * 100), (-50 + x * 100, 50 + y * 100), colors[y][x], 3)
-                if y > 0 and colors[y][x] == colors[y-1][x]:
+                if y > 0 and colors[y][x][:3] == colors[y-1][x][:3]:
                     cv2.line(b, (50 + x * 100, 50 + y * 100), (50 + x * 100, -50 + y * 100), colors[y][x], 3)'''
 
                 #cv2.putText(b, text, (5 + x * 100, 25 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
 
-                '''cv2.putText(b, str(np.array(diff[count]).tolist()), (2 + x * 100, 40 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 3)
-                cv2.putText(b, str(np.array(diff[count]).tolist()), (2 + x * 100, 40 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
-                cv2.putText(b, str(np.array([np.argmax(np.setdiff1d(H, diff[count][0])), np.argmax(np.setdiff1d(S, diff[count][1])), np.argmax(np.setdiff1d(V, diff[count][2]))])), (2 + x * 100, 60 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 3)
-                cv2.putText(b, str(np.array([np.argmax(np.setdiff1d(H, diff[count][0])), np.argmax(np.setdiff1d(S, diff[count][1])), np.argmax(np.setdiff1d(V, diff[count][2]))])), (2 + x * 100, 60 + y * 100), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)'''
-
                 count += 1
+    for p in pt:
+        cv2.putText(b, "WA", p, cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
 
-    show = False
+    show = True
     if show:
         cv2.imshow("Matched", b)
         cv2.waitKey(0)
@@ -393,6 +389,11 @@ cv2.imwrite("results/Forests.jpg", forest)
 cv2.imwrite("results/ForestRes.jpg", cForest)
 cv2.imwrite("results/Sands.jpg", sand)
 cv2.imwrite("results/SandRes.jpg", cSand)
+cv2.imwrite("results/Mines.jpg", mine)
+cv2.imwrite("results/Grasslands.jpg", grass)
+cv2.imwrite("results/Deserts.jpg", desert)
+cv2.imwrite("results/Table.jpg", table)
+cv2.imwrite("results/NA.jpg", na)
 '''cv2.imwrite("results/Mines.jpg", mine)
 cv2.imwrite("results/Grasslands.jpg", grass)
 cv2.imwrite("results/Deserts.jpg", desert)
